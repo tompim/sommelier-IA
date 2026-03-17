@@ -323,29 +323,23 @@ async function loadCave() {
   const pass = document.getElementById('ct-pass').value.trim();
   if (!user || !pass) { showStatus('connexion','Veuillez renseigner vos identifiants.','error'); return; }
   setBtnState('btn-connect', true, 'Chargement…');
-  const ctUrl = `https://www.cellartracker.com/api.asp?User=${encodeURIComponent(user)}&Password=${encodeURIComponent(pass)}&Type=Inventory&Format=xml`;
-  let lastErr;
-  for (let i = 0; i < CORS_PROXIES.length; i++) {
-    try {
-      showStatus('connexion', `Tentative ${i+1}/${CORS_PROXIES.length}…`, 'info');
-      const resp = await fetch(CORS_PROXIES[i](ctUrl), { signal: AbortSignal.timeout(12000) });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const ct = resp.headers.get('content-type') || '';
-      const text = ct.includes('application/json') ? (await resp.json()).contents : await resp.text();
-      if (!text || text.toLowerCase().includes('<e>') || text.toLowerCase().includes('invalid user'))
-        throw new Error('Identifiants incorrects.');
-      allWines = parseXmlInventory(text);
-      if (!allWines.length) throw new Error('Cave vide.');
-      showStatus('connexion', `✓ ${allWines.length} bouteilles chargées.`, 'success');
-      document.getElementById('connexion-panel').style.display = 'none';
-      updateCaveBanner(allWines.length);
-      setBtnState('btn-connect', false, 'Recharger');
-      return;
-    } catch(e) { lastErr = e; }
+  showStatus('connexion', 'Connexion à CellarTracker…', 'info');
+  try {
+    const resp = await fetch(`/api/cave-proxy?user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}`, { signal: AbortSignal.timeout(20000) });
+    if (resp.status === 401) throw new Error('Identifiants incorrects.');
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const text = await resp.text();
+    allWines = parseXmlInventory(text);
+    if (!allWines.length) throw new Error('Cave vide.');
+    showStatus('connexion', `✓ ${allWines.length} bouteilles chargées.`, 'success');
+    document.getElementById('connexion-panel').style.display = 'none';
+    updateCaveBanner(allWines.length);
+    setBtnState('btn-connect', false, 'Recharger');
+  } catch(e) {
+    showStatus('connexion', e.message || 'Erreur réseau', 'error');
+    document.getElementById('csv-fallback').style.display = 'block';
+    setBtnState('btn-connect', false, 'Réessayer');
   }
-  showStatus('connexion', lastErr?.message || 'Erreur réseau', 'error');
-  document.getElementById('csv-fallback').style.display = 'block';
-  setBtnState('btn-connect', false, 'Réessayer');
 }
 
 function updateCaveBanner(n) {

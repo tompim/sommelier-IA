@@ -45,6 +45,31 @@ app.get('/api/cave', async (req, res) => {
   }
 });
 
+// ─── CELLARTRACKER PROXY WITH INLINE CREDENTIALS ──────────────────────────────
+// Used when credentials are not configured server-side (user enters them in UI)
+app.get('/api/cave-proxy', async (req, res) => {
+  const user = req.query.user || process.env.CELLARTRACKER_USER;
+  const pass = req.query.pass || process.env.CELLARTRACKER_PASS;
+
+  if (!user || !pass) {
+    return res.status(400).json({ error: 'CellarTracker credentials missing.' });
+  }
+
+  try {
+    const url = `https://www.cellartracker.com/api.asp?User=${encodeURIComponent(user)}&Password=${encodeURIComponent(pass)}&Type=Inventory&Format=xml`;
+    const ctResp = await fetch(url, { signal: AbortSignal.timeout(15000) });
+    if (!ctResp.ok) throw new Error(`CellarTracker HTTP ${ctResp.status}`);
+    const xml = await ctResp.text();
+    if (xml.toLowerCase().includes('<e>') || xml.toLowerCase().includes('invalid user')) {
+      return res.status(401).json({ error: 'Identifiants CellarTracker incorrects.' });
+    }
+    res.set('Content-Type', 'application/xml');
+    res.send(xml);
+  } catch (e) {
+    res.status(502).json({ error: `CellarTracker fetch failed: ${e.message}` });
+  }
+});
+
 // ─── ANTHROPIC PROXY ──────────────────────────────────────────────────────────
 // Proxies requests to Anthropic — API key never exposed to the browser
 app.post('/api/pairing', async (req, res) => {
