@@ -116,7 +116,7 @@ Sélectionne EXACTEMENT 4 vins, un par catégorie Taillevent. Fais tes recherche
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4000,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
         system: systemPrompt,
