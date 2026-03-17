@@ -402,7 +402,7 @@ function parseCsvInventory(text) {
 // ─── PAIRING ──────────────────────────────────────────────────────────────────
 async function searchPairing() {
   const dish = document.getElementById('dish-input').value.trim();
-  const apiKey = serverConfig.hasApiKey ? null : document.getElementById('anthropic-key').value.trim();
+  const apiKey = serverConfig.hasApiKey ? null : document.getElementById('anthropic-key').value.replace(/[^\x20-\x7E]/g, '').trim();
   const locFilter = document.getElementById('location-filter').value;
   if (!dish) { document.getElementById('dish-input').focus(); return; }
   if (!serverConfig.hasApiKey && !apiKey) { alert('Veuillez entrer votre clé API Anthropic.'); return; }
